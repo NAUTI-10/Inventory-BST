@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ShelfTree: BST Inventory Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef3f2;--surface:#fff;--ink:#10272b;--muted:#5b7074;--line:#d5e0de;--teal:#0f766e;--teal-soft:#d9f0ec;--gold:#f2a900;--gold-soft:#fff1cc;--red:#c8402f;--red-soft:#fde4e0;--shadow:0 1px 2px rgba(16,39,43,.06),0 8px 24px -12px rgba(16,39,43,.18);
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#0c1a1d;--surface:#132a2e;--ink:#e6f1ef;--muted:#8fa9ad;--line:#244249;--teal:#3cc4b5;--teal-soft:#15403f;--gold:#f6b93b;--gold-soft:#463912;--red:#ff7c6b;--red-soft:#4a211c;--shadow:0 8px 24px -12px rgba(0,0,0,.6)}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0c1a1d;--surface:#132a2e;--ink:#e6f1ef;--muted:#8fa9ad;--line:#244249;--teal:#3cc4b5;--teal-soft:#15403f;--gold:#f6b93b;--gold-soft:#463912;--red:#ff7c6b;--red-soft:#4a211c;--shadow:0 8px 24px -12px rgba(0,0,0,.6)}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Instrument Sans",system-ui,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 48px}
+h1,h2{font-family:"Bricolage Grotesque","Instrument Sans",system-ui,sans-serif;margin:0;letter-spacing:-.02em}
+h1{font-size:clamp(28px,5vw,44px);font-weight:800;line-height:1.05}
+h2{font-size:18px;font-weight:600}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:12px;margin-bottom:20px}
+header p{margin:6px 0 0;color:var(--muted);max-width:52ch}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow)}
+.stat b{display:block;font:800 24px "Bricolage Grotesque",sans-serif;letter-spacing:-.02em}
+.stat span{color:var(--muted);font-size:13px}
+.grid{display:grid;grid-template-columns:320px 1fr;gap:16px;align-items:start}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)}
+.card+.card{margin-top:16px}
+.card h2{margin-bottom:12px}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit}
+input:focus,button:focus-visible{outline:2px solid var(--teal);outline-offset:1px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{font:600 14px "Instrument Sans",sans-serif;border:0;border-radius:10px;padding:10px 14px;cursor:pointer;background:var(--teal);color:#fff;transition:transform .12s}
+button:active{transform:scale(.97)}
+button.ghost{background:var(--teal-soft);color:var(--teal)}
+button.danger{background:var(--red-soft);color:var(--red)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.actions>*{flex:1 1 auto}
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tabs button{background:transparent;color:var(--muted)}
+.tabs button.on{background:var(--ink);color:var(--bg)}
+.treebox{overflow:auto;border:1px dashed var(--line);border-radius:14px;min-height:260px;max-height:520px;background:var(--bg)}
+svg text{font-family:"Bricolage Grotesque",sans-serif;pointer-events:none}
+.edge{stroke:var(--line);stroke-width:2;fill:none}
+.edge.p{stroke:var(--gold);stroke-width:3}
+.node circle{fill:var(--surface);stroke:var(--teal);stroke-width:2.5;cursor:pointer}
+.node.p circle{fill:var(--gold-soft);stroke:var(--gold);animation:pop .5s both;animation-delay:var(--d)}
+.node.hit circle{fill:var(--gold);stroke:var(--gold)}
+.node.hit .id{fill:#10272b}
+.node .id{font-weight:800;font-size:14px;fill:var(--ink);text-anchor:middle}
+.node .pr{font-size:11px;fill:var(--muted);text-anchor:middle}
+@keyframes pop{0%{opacity:.2;transform:scale(.6)}100%{opacity:1;transform:scale(1)}}
+.node.p{transform-box:fill-box;transform-origin:center}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:560px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+th{font-weight:600;color:var(--muted);font-size:13px}
+td.n{font-variant-numeric:tabular-nums}
+tr.hl td{background:var(--gold-soft)}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;background:var(--red-soft);color:var(--red);margin-left:6px}
+.mini{padding:6px 10px;font-size:13px}
+.seq{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.seq span{background:var(--teal-soft);color:var(--teal);padding:4px 10px;border-radius:99px;font-weight:600;font-variant-numeric:tabular-nums}
+.note{color:var(--muted);font-size:13px;margin:10px 0 0}
+.empty{padding:40px 16px;text-align:center;color:var(--muted)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;opacity:0;pointer-events:none;transition:.25s;max-width:90vw;z-index:20}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+body{background:radial-gradient(900px 420px at 90% -10%,rgba(15,118,110,.2),transparent 60%),radial-gradient(700px 360px at -10% 25%,rgba(242,169,0,.16),transparent 60%),var(--bg);background-attachment:fixed}
+header{background:linear-gradient(135deg,#0f766e,#134e4a 60%,#0b2f33);color:#fff;border-radius:26px;padding:28px 26px;box-shadow:0 20px 40px -22px rgba(15,118,110,.8);position:relative;overflow:hidden}
+header::after{content:"";position:absolute;right:-50px;top:-60px;width:220px;height:220px;border-radius:50%;background:rgba(242,169,0,.28)}
+header::before{content:"";position:absolute;right:90px;bottom:-70px;width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.08)}
+header>*{position:relative;z-index:1}
+header p{color:#cfeae6}
+.card{border-radius:22px}
+.stat{display:flex;gap:12px;align-items:center;border-top:4px solid var(--teal)}
+.stat:nth-child(2){border-top-color:var(--gold)}
+.stat:nth-child(3){border-top-color:#2f9e6b}
+.stat:nth-child(4){border-top-color:var(--red)}
+.stat:nth-child(5){border-top-color:#6c63d9}
+.stat i{font-style:normal;font-size:20px;width:42px;height:42px;display:grid;place-items:center;border-radius:13px;background:var(--teal-soft);flex:none}
+button{background:linear-gradient(135deg,#0f766e,#14a396);box-shadow:0 8px 16px -10px rgba(15,118,110,.9)}
+button.ghost,button.danger,.tabs button{box-shadow:none}
+button.ghost{background:var(--teal-soft)}
+button.danger{background:var(--red-soft)}
+.tabs button{background:transparent}
+.tabs button.on{background:linear-gradient(135deg,#0f766e,#14a396);color:#fff}
+.node circle{stroke-width:3;filter:drop-shadow(0 4px 5px rgba(15,118,110,.28))}
+.treebox{background:radial-gradient(circle,var(--line) 1px,transparent 1.5px) 0 0/22px 22px,var(--bg);border-style:solid}
+th{background:var(--bg);position:sticky;top:0}
+tbody tr:hover td{background:var(--teal-soft)}
+.seq span{background:linear-gradient(135deg,var(--teal-soft),var(--gold-soft))}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+ <div>
+  <h1>🌳 ShelfTree</h1>
+  <p>A store inventory kept in a binary search tree. Items are ordered by ID, so lookups, inserts and deletes skip half the shelf at every step.</p>
+ </div>
+</header>
+
+<section class="stats" id="stats"></section>
+
+<div class="grid">
+ <aside>
+  <div class="card">
+   <h2>Add or update item</h2>
+   <form onsubmit="return false" id="f">
+    <label for="id">Item ID</label><input id="id" type="number" min="1" inputmode="numeric" placeholder="e.g. 105">
+    <label for="nm">Name</label><input id="nm" placeholder="e.g. Basmati rice 5 kg">
+    <div class="row">
+     <div><label for="qt">Quantity</label><input id="qt" type="number" min="0" inputmode="numeric"></div>
+     <div><label for="pr">Price (₹)</label><input id="pr" type="number" min="0" step="0.01" inputmode="decimal"></div>
+    </div>
+    <div class="actions">
+     <button id="save">Save item</button>
+     <button class="ghost" id="find">Find by ID</button>
+     <button class="danger" id="del">Delete</button>
+    </div>
+   </form>
+   <p class="note">Saving an ID that already exists updates its name, quantity and price.</p>
+  </div>
+  <div class="card">
+   <h2>Search by price range</h2>
+   <div class="row">
+    <div><label for="lo">From (₹)</label><input id="lo" type="number" min="0" step="0.01"></div>
+    <div><label for="hi">To (₹)</label><input id="hi" type="number" min="0" step="0.01"></div>
+   </div>
+   <div class="actions"><button class="ghost" id="range">Show matches</button><button class="ghost" id="clear">Clear</button></div>
+  </div>
+ </aside>
+
+ <main class="card">
+  <div class="tabs" id="tabs">
+   <button data-t="tree" class="on">Tree view</button>
+   <button data-t="table">Item list</button>
+   <button data-t="trav">Traversals</button>
+  </div>
+  <div id="view"></div>
+ </main>
+</div>
+</div>
+<div id="toast" role="status"></div>
+
+<script>
+// ---------- BST core ----------
+class Node{constructor(o){Object.assign(this,o);this.l=null;this.r=null}}
+let root=null, hl=[], hit=null, tab='tree', rangeSet=null;
+const $=s=>document.querySelector(s);
+
+function insert(it){
+  const path=[];
+  if(!root){root=new Node(it);return {ok:true,path:[it.id],upd:false}}
+  let n=root;
+  for(;;){
+    path.push(n.id);
+    if(it.id===n.id){n.name=it.name;n.qty=it.qty;n.price=it.price;return {ok:true,path,upd:true}}
+    const k=it.id<n.id?'l':'r';
+    if(!n[k]){n[k]=new Node(it);path.push(it.id);return {ok:true,path,upd:false}}
+    n=n[k];
+  }
+}
+function search(id){
+  const path=[];let n=root;
+  while(n){path.push(n.id);if(id===n.id)return {node:n,path};n=id<n.id?n.l:n.r}
+  return {node:null,path};
+}
+function remove(n,id){
+  if(!n)return null;
+  if(id<n.id)n.l=remove(n.l,id);
+  else if(id>n.id)n.r=remove(n.r,id);
+  else{
+    if(!n.l)return n.r;
+    if(!n.r)return n.l;
+    let s=n.r;while(s.l)s=s.l;           // in-order successor
+    n.id=s.id;n.name=s.name;n.qty=s.qty;n.price=s.price;
+    n.r=remove(n.r,s.id);
+  }
+  return n;
+}
+const inorder=(n,a=[])=>{if(n){inorder(n.l,a);a.push(n);inorder(n.r,a)}return a};
+const preorder=(n,a=[])=>{if(n){a.push(n);preorder(n.l,a);preorder(n.r,a)}return a};
+const postorder=(n,a=[])=>{if(n){postorder(n.l,a);postorder(n.r,a);a.push(n)}return a};
+const levelorder=()=>{const a=[],q=root?[root]:[];while(q.length){const n=q.shift();a.push(n);n.l&&q.push(n.l);n.r&&q.push(n.r)}return a};
+const height=n=>n?1+Math.max(height(n.l),height(n.r)):0;
+
+// ---------- helpers ----------
+const money=v=>'₹'+Number(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let tt;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2400)}
+function save(){try{localStorage.setItem('shelftree-inr',JSON.stringify(preorder(root).map(({id,name,qty,price})=>({id,name,qty,price}))))}catch(e){}}
+function load(){
+  try{const d=JSON.parse(localStorage.getItem('shelftree-inr')||'null');if(d&&d.length){d.forEach(insert);return}}catch(e){}
+  [[105,'Basmati rice 5 kg',24,649],[102,'Olive oil 1 L',8,799],[110,'Whole wheat atta 5 kg',40,245],[101,'Iodised salt 1 kg',60,28],[104,'Green tea (100 bags)',3,285],[108,'Peanut butter 500 g',15,189],[115,'Dark chocolate bar',70,120],[103,'Black pepper 100 g',22,135],[112,'Orange juice 1 L',12,110],[120,'Oats 1 kg',18,185]]
+   .forEach(([id,name,qty,price])=>insert({id,name,qty,price}));
+}
+function read(){
+  const id=parseInt($('#id').value,10);
+  return {id:isNaN(id)?null:id,name:$('#nm').value.trim(),qty:parseInt($('#qt').value,10),price:parseFloat($('#pr').value)};
+}
+function fill(n){$('#id').value=n.id;$('#nm').value=n.name;$('#qt').value=n.qty;$('#pr').value=n.price}
+
+// ---------- rendering ----------
+function stats(){
+  const a=inorder(root),val=a.reduce((s,n)=>s+n.qty*n.price,0);
+  const low=a.filter(n=>n.qty<5).length;
+  $('#stats').innerHTML=[[a.length,'items'],[height(root),'tree height'],[money(val),'stock value'],[low,'low stock'],[a.length?money(Math.max(...a.map(n=>n.price))):'—','costliest item']]
+   .map(([v,l],i)=>`<div class="stat"><i>${['📦','🌳','💰','⚠️','🏷️'][i]}</i><div><b>${v}</b><span>${l}</span></div></div>`).join('');
+}
+function treeSVG(){
+  if(!root)return '<div class="empty">The shelf is empty. Add your first item to plant the root.</div>';
+  const pos=new Map();let i=0;
+  (function w(n,d){if(!n)return;w(n.l,d+1);pos.set(n.id,{x:46+i++*64,y:42+d*84,n});w(n.r,d+1)})(root,0);
+  const W=46*2+(i-1)*64+20,H=42+(height(root)-1)*84+60;
+  let e='',nd='';
+  pos.forEach(({x,y,n})=>{
+    [n.l,n.r].forEach(c=>{if(c){const p=pos.get(c.id);const on=hl.includes(n.id)&&hl.includes(c.id);e+=`<path class="edge${on?' p':''}" d="M${x} ${y}C${x} ${(y+p.y)/2} ${p.x} ${(y+p.y)/2} ${p.x} ${p.y}"/>`}});
+    const k=hl.indexOf(n.id),cls=(k>-1?' p':'')+(hit===n.id?' hit':'');
+    nd+=`<g class="node${cls}" style="--d:${Math.max(k,0)*140}ms" data-id="${n.id}"><circle cx="${x}" cy="${y}" r="24"/><text class="id" x="${x}" y="${y+5}">${n.id}</text><text class="pr" x="${x}" y="${y+40}">${money(n.price)}</text></g>`;
+  });
+  return `<div class="treebox"><svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${e}${nd}</svg></div><p class="note">Smaller IDs go left, larger go right. Tap a node to load it into the form. Gold shows the path of the last search or insert.</p>`;
+}
+function tableHTML(){
+  let a=inorder(root);
+  if(rangeSet)a=a.filter(n=>n.price>=rangeSet[0]&&n.price<=rangeSet[1]);
+  if(!a.length)return `<div class="empty">${rangeSet?'No items fall in that price range.':'No items yet.'}</div>`;
+  return `<div class="tablewrap"><table><thead><tr><th>ID</th><th>Name</th><th>Qty</th><th>Price</th><th>Value</th><th></th></tr></thead><tbody>${a.map(n=>`<tr class="${hit===n.id?'hl':''}"><td class="n">${n.id}</td><td>${esc(n.name)}${n.qty<5?'<span class="badge">low</span>':''}</td><td class="n">${n.qty}</td><td class="n">${money(n.price)}</td><td class="n">${money(n.qty*n.price)}</td><td><button class="ghost mini" data-edit="${n.id}">Edit</button></td></tr>`).join('')}</tbody></table></div>${rangeSet?`<p class="note">Showing prices from ${money(rangeSet[0])} to ${money(rangeSet[1])}.</p>`:'<p class="note">In-order traversal gives the list sorted by ID with no extra sorting step.</p>'}`;
+}
+function travHTML(){
+  if(!root)return '<div class="empty">Add items to see traversals.</div>';
+  const S=(t,a,d)=>`<h2>${t}</h2><p class="note" style="margin:2px 0 0">${d}</p><div class="seq">${a.map(n=>`<span>${n.id}</span>`).join('')}</div><br>`;
+  return S('In-order',inorder(root),'Left, node, right. Always sorted.')+S('Pre-order',preorder(root),'Node, left, right. Useful for copying the tree.')+S('Post-order',postorder(root),'Left, right, node. Children come before parents.')+S('Level-order',levelorder(),'Row by row from the root.');
+}
+function render(){
+  stats();
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
+  $('#view').innerHTML=tab==='tree'?treeSVG():tab==='table'?tableHTML():travHTML();
+}
+
+// ---------- actions ----------
+$('#save').onclick=()=>{
+  const d=read();
+  if(d.id===null||d.id<1)return toast('Enter a positive item ID.');
+  if(!d.name)return toast('Enter an item name.');
+  if(isNaN(d.qty)||d.qty<0)return toast('Enter a quantity of 0 or more.');
+  if(isNaN(d.price)||d.price<0)return toast('Enter a price of 0 or more.');
+  const r=insert(d);hl=r.path;hit=d.id;rangeSet=null;save();
+  toast(r.upd?`Updated item ${d.id}.`:`Added item ${d.id} after ${r.path.length-1} comparison${r.path.length-1===1?'':'s'}.`);
+  render();
+};
+$('#find').onclick=()=>{
+  const d=read();if(d.id===null)return toast('Enter an item ID to find.');
+  const r=search(d.id);hl=r.path;hit=r.node?r.node.id:null;
+  if(r.node){fill(r.node);toast(`Found "${r.node.name}" in ${r.path.length} step${r.path.length===1?'':'s'}.`)}
+  else toast(`Item ${d.id} is not in the inventory.`);
+  render();
+};
+$('#del').onclick=()=>{
+  const d=read();if(d.id===null)return toast('Enter an item ID to delete.');
+  const r=search(d.id);if(!r.node)return toast(`Item ${d.id} is not in the inventory.`);
+  root=remove(root,d.id);hl=[];hit=null;save();$('#f').reset();toast(`Deleted item ${d.id}.`);render();
+};
+$('#range').onclick=()=>{
+  const lo=parseFloat($('#lo').value),hi=parseFloat($('#hi').value);
+  if(isNaN(lo)||isNaN(hi)||lo>hi)return toast('Enter a valid range: From must not exceed To.');
+  rangeSet=[lo,hi];tab='table';render();
+};
+$('#clear').onclick=()=>{rangeSet=null;$('#lo').value=$('#hi').value='';render()};
+$('#tabs').onclick=e=>{const t=e.target.dataset.t;if(t){tab=t;render()}};
+$('#view').onclick=e=>{
+  const g=e.target.closest('.node'),b=e.target.closest('[data-edit]');
+  const id=g?+g.dataset.id:b?+b.dataset.edit:null;
+  if(id!==null){const r=search(id);if(r.node){fill(r.node);hl=r.path;hit=id;toast(`Loaded item ${id} into the form.`);render();scrollTo({top:0,behavior:'smooth'})}}
+};
+load();render();
+</script>
+</body>
+</html>
